@@ -1,0 +1,15 @@
+gmaa/
+├── README.md
+├── LICENSE
+├── marm.py
+├── meta_attention.py
+├── hybrid.py
+├── train_common_crawl.py
+├── evaluate.py
+├── visualize/
+│   └── diagrams.md
+├── experiments/
+│   └── benchmarks.md
+├── notebooks/
+│   └── colab_training.ipynb (generated from code below)
+└── requirements.txt
