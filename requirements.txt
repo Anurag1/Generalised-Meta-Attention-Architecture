@@ -1,0 +1,7 @@
+torch>=2.0
+transformers>=4.40
+datasets>=2.18
+accelerate>=0.27
+sentencepiece
+tqdm
+numpy
