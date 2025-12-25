@@ -1,0 +1,47 @@
+import torch
+import torch.nn as nn
+from meta_attention import MetaAttention
+
+class MARM(nn.Module):
+    """
+    MetaAttention Reasoning Model
+    """
+
+    def __init__(self, vocab_size, d_model=256, layers=4, heads=4):
+        super().__init__()
+
+        self.embed = nn.Embedding(vocab_size, d_model)
+
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=d_model,
+            nhead=heads,
+            batch_first=True
+        )
+        self.encoder = nn.TransformerEncoder(encoder_layer, layers)
+
+        self.meta_attention = MetaAttention(d_model)
+
+        # Language modeling head
+        self.lm_head = nn.Linear(d_model, vocab_size)
+
+        # Epistemic heads
+        self.epistemic_head = nn.Linear(d_model, 3)  # know / infer / unsure
+        self.critique_head = nn.Linear(d_model, 1)
+
+    def forward(self, input_ids):
+        """
+        input_ids: [batch, seq_len]
+        """
+        H = self.encoder(self.embed(input_ids))
+
+        meta_repr = self.meta_attention(H).squeeze(1)
+
+        logits = self.lm_head(H)
+        epistemic = torch.softmax(self.epistemic_head(meta_repr), dim=-1)
+        critique = torch.sigmoid(self.critique_head(meta_repr))
+
+        return {
+            "logits": logits,
+            "epistemic": epistemic,
+            "critique": critique
+        }
