@@ -1,0 +1,65 @@
+import torch
+import torch.nn as nn
+from datasets import load_dataset
+from transformers import AutoTokenizer
+from marm import MARM
+from tqdm import tqdm
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+tokenizer.pad_token = tokenizer.eos_token
+
+dataset = load_dataset(
+    "c4",
+    "en",
+    split="train",
+    streaming=True
+)
+
+model = MARM(vocab_size=tokenizer.vocab_size).to(device)
+optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
+loss_fn = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_token_id)
+
+def tokenize(texts, max_len=128):
+    return tokenizer(
+        texts,
+        truncation=True,
+        padding="max_length",
+        max_length=max_len,
+        return_tensors="pt"
+    )["input_ids"]
+
+stream = iter(dataset)
+steps = 10_000
+batch_size = 8
+
+progress = tqdm(range(steps))
+
+for step in progress:
+    texts = [next(stream)["text"] for _ in range(batch_size)]
+    input_ids = tokenize(texts).to(device)
+
+    out = model(input_ids)
+
+    logits = out["logits"]
+
+    loss = loss_fn(
+        logits[:, :-1].reshape(-1, logits.size(-1)),
+        input_ids[:, 1:].reshape(-1)
+    )
+
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+    if step % 100 == 0:
+        progress.set_postfix({
+            "loss": round(loss.item(), 4),
+            "know": round(out["epistemic"].mean(0)[0].item(), 3),
+            "infer": round(out["epistemic"].mean(0)[1].item(), 3),
+            "unsure": round(out["epistemic"].mean(0)[2].item(), 3),
+            "critique": round(out["critique"].mean().item(), 3)
+        })
+
+torch.save(model.state_dict(), "marm_common_crawl.pt")
