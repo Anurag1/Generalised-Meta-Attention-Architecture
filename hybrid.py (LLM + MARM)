@@ -1,0 +1,45 @@
+import torch
+from transformers import AutoTokenizer
+from marm import MARM
+
+tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+tokenizer.pad_token = tokenizer.eos_token
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+marm = MARM(vocab_size=tokenizer.vocab_size).to(device)
+marm.eval()
+
+def evaluate_answer(answer: str):
+    tokens = tokenizer(
+        answer,
+        return_tensors="pt",
+        truncation=True,
+        padding=True
+    )["input_ids"].to(device)
+
+    with torch.no_grad():
+        out = marm(tokens)
+
+    know, infer, unsure = out["epistemic"][0].tolist()
+
+    return {
+        "know": know,
+        "infer": infer,
+        "unsure": unsure,
+        "critique": out["critique"].item()
+    }
+
+def hybrid_decision(answer: str):
+    score = evaluate_answer(answer)
+
+    if score["unsure"] > 0.45 or score["critique"] < 0.4:
+        return {
+            "decision": "ABSTAIN",
+            "epistemic": score
+        }
+
+    return {
+        "decision": "ACCEPT",
+        "epistemic": score
+    }
