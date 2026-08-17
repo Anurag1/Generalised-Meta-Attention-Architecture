@@ -1,0 +1,34 @@
+name: leonardo-synthesis
+version: 0.1
+components:
+  inference:
+    project: vllm-project/vllm
+    role: model-serving
+  knowledge:
+    project: microsoft/graphrag
+    role: entity-relation-claim graph
+  structured_reasoning:
+    project: dottxt-ai/outlines
+    role: constrained generation
+  interface:
+    project: open-webui/open-webui
+    role: human interaction
+  lifelong_learning:
+    project: Anurag1/HONET-
+    role: continual-learning research component
+  meta_reasoning:
+    project: Anurag1/Generalised-Meta-Attention-Architecture
+    role: confidence-rule-feedback loop
+  geometry:
+    project: Anurag1/Geometric-Engine-Intelligence-
+    role: visual/structural hypothesis representation
+pipeline:
+  - ingest
+  - construct_graph
+  - detect_contradictions
+  - generate_hypotheses
+  - test
+  - score
+  - preserve_learning
+  - update_graph
+note: Third-party projects are referenced as dependencies/inspiration rather than copied into this repository.
