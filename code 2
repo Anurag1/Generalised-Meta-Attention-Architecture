@@ -1,0 +1,369 @@
+"""
+Leonardo AI Integration Prototype
+
+Pipeline:
+    Evidence
+      ↓
+    Knowledge Graph
+      ↓
+    Contradiction Detection
+      ↓
+    Hypothesis Generation
+      ↓
+    Evaluation
+      ↓
+    Feedback
+
+Designed to integrate:
+- GMAA: meta-reasoning / feedback
+- HONet: continual-learning abstraction
+- GraphRAG: knowledge relationships
+- vLLM: model serving
+- Outlines: structured outputs
+
+This prototype uses lightweight Python structures so it can
+be tested without requiring large models or external services.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Dict, List, Tuple
+import re
+
+
+# ============================================================
+# 1. DATA MODEL
+# ============================================================
+
+@dataclass
+class Evidence:
+    subject: str
+    relation: str
+    object: str
+    source: str = "unknown"
+    confidence: float = 1.0
+
+
+@dataclass
+class Hypothesis:
+    statement: str
+    supporting_evidence: List[Evidence] = field(default_factory=list)
+    contradictions: List[Tuple[Evidence, Evidence]] = field(default_factory=list)
+    score: float = 0.0
+
+
+# ============================================================
+# 2. KNOWLEDGE GRAPH
+# ============================================================
+
+class KnowledgeGraph:
+    def __init__(self):
+        self.edges: List[Evidence] = []
+
+    def add(self, evidence: Evidence) -> None:
+        self.edges.append(evidence)
+
+    def query(self, subject=None, relation=None, object=None):
+        results = self.edges
+
+        if subject is not None:
+            results = [e for e in results if e.subject == subject]
+
+        if relation is not None:
+            results = [e for e in results if e.relation == relation]
+
+        if object is not None:
+            results = [e for e in results if e.object == object]
+
+        return results
+
+
+# ============================================================
+# 3. CONTRADICTION ENGINE
+# ============================================================
+
+class ContradictionEngine:
+
+    OPPOSITES = {
+        "supports": "contradicts",
+        "contradicts": "supports",
+        "increases": "decreases",
+        "decreases": "increases",
+        "causes": "prevents",
+        "prevents": "causes",
+        "improves": "harms",
+        "harms": "improves",
+    }
+
+    def find(self, graph: KnowledgeGraph):
+        contradictions = []
+
+        for i, a in enumerate(graph.edges):
+            for b in graph.edges[i + 1:]:
+
+                same_entities = (
+                    a.subject == b.subject
+                    and a.object == b.object
+                )
+
+                opposite_relation = (
+                    self.OPPOSITES.get(a.relation) == b.relation
+                )
+
+                if same_entities and opposite_relation:
+                    contradictions.append((a, b))
+
+        return contradictions
+
+
+# ============================================================
+# 4. HYPOTHESIS ENGINE
+# ============================================================
+
+class HypothesisEngine:
+
+    def generate(self, contradiction):
+        a, b = contradiction
+
+        statement = (
+            f"Why does '{a.subject}' simultaneously "
+            f"{a.relation} '{a.object}' and "
+            f"{b.relation} '{b.object}'?"
+        )
+
+        return Hypothesis(
+            statement=statement,
+            contradictions=[contradiction]
+        )
+
+
+# ============================================================
+# 5. EPISTEMIC CONFIDENCE
+# ============================================================
+
+class ConfidenceEngine:
+
+    def score(self, hypothesis: Hypothesis) -> float:
+
+        if not hypothesis.contradictions:
+            return 0.0
+
+        evidence_scores = []
+
+        for a, b in hypothesis.contradictions:
+            evidence_scores.extend([
+                a.confidence,
+                b.confidence
+            ])
+
+        return sum(evidence_scores) / len(evidence_scores)
+
+
+# ============================================================
+# 6. META-ATTENTION
+# ============================================================
+
+class MetaAttention:
+
+    """
+    Simplified GMAA-style observation layer.
+
+    Instead of only asking:
+        "What is the answer?"
+
+    it asks:
+        "Why did the system focus on this relationship?"
+    """
+
+    def inspect(self, evidence: List[Evidence]) -> Dict:
+
+        if not evidence:
+            return {
+                "attention_mass": 0.0,
+                "dominant_subject": None,
+            }
+
+        subjects = {}
+
+        for item in evidence:
+            subjects[item.subject] = (
+                subjects.get(item.subject, 0.0)
+                + item.confidence
+            )
+
+        dominant = max(subjects, key=subjects.get)
+
+        total = sum(subjects.values())
+
+        return {
+            "attention_mass": total,
+            "dominant_subject": dominant,
+            "subject_distribution": subjects,
+        }
+
+
+# ============================================================
+# 7. FEEDBACK LOOP
+# ============================================================
+
+class FeedbackEngine:
+
+    def update(self, hypothesis: Hypothesis, confidence: float):
+
+        hypothesis.score = confidence
+
+        if confidence >= 0.8:
+            status = "HIGH_CONFIDENCE"
+
+        elif confidence >= 0.5:
+            status = "MEDIUM_CONFIDENCE"
+
+        else:
+            status = "LOW_CONFIDENCE"
+
+        return {
+            "hypothesis": hypothesis.statement,
+            "score": confidence,
+            "status": status,
+        }
+
+
+# ============================================================
+# 8. COMPLETE SYSTEM
+# ============================================================
+
+class LeonardoAI:
+
+    def __init__(self):
+
+        self.graph = KnowledgeGraph()
+
+        self.contradiction_engine = ContradictionEngine()
+        self.hypothesis_engine = HypothesisEngine()
+        self.confidence_engine = ConfidenceEngine()
+        self.meta_attention = MetaAttention()
+        self.feedback = FeedbackEngine()
+
+    def learn(self, evidence: List[Evidence]):
+
+        # --------------------------------------------
+        # Step 1 — Store observations
+        # --------------------------------------------
+
+        for item in evidence:
+            self.graph.add(item)
+
+        # --------------------------------------------
+        # Step 2 — Observe attention
+        # --------------------------------------------
+
+        attention = self.meta_attention.inspect(
+            evidence
+        )
+
+        # --------------------------------------------
+        # Step 3 — Find contradictions
+        # --------------------------------------------
+
+        contradictions = (
+            self.contradiction_engine.find(
+                self.graph
+            )
+        )
+
+        # --------------------------------------------
+        # Step 4 — Generate hypotheses
+        # --------------------------------------------
+
+        hypotheses = []
+
+        for contradiction in contradictions:
+
+            hypothesis = (
+                self.hypothesis_engine.generate(
+                    contradiction
+                )
+            )
+
+            # ----------------------------------------
+            # Step 5 — Estimate confidence
+            # ----------------------------------------
+
+            confidence = (
+                self.confidence_engine.score(
+                    hypothesis
+                )
+            )
+
+            # ----------------------------------------
+            # Step 6 — Feedback
+            # ----------------------------------------
+
+            result = self.feedback.update(
+                hypothesis,
+                confidence
+            )
+
+            hypotheses.append(result)
+
+        return {
+            "attention": attention,
+            "contradictions": len(contradictions),
+            "hypotheses": hypotheses,
+            "knowledge_size": len(self.graph.edges),
+        }
+
+
+# ============================================================
+# 9. DEMONSTRATION
+# ============================================================
+
+if __name__ == "__main__":
+
+    ai = LeonardoAI()
+
+    observations = [
+
+        Evidence(
+            subject="AI",
+            relation="increases",
+            object="automation",
+            source="observation_1",
+            confidence=0.90,
+        ),
+
+        Evidence(
+            subject="AI",
+            relation="decreases",
+            object="automation",
+            source="observation_2",
+            confidence=0.85,
+        ),
+
+        Evidence(
+            subject="AI",
+            relation="improves",
+            object="reasoning",
+            source="observation_3",
+            confidence=0.80,
+        ),
+    ]
+
+    result = ai.learn(observations)
+
+    print("\n=== LEONARDO AI EXPERIMENT ===\n")
+
+    print("Knowledge size:")
+    print(result["knowledge_size"])
+
+    print("\nAttention:")
+    print(result["attention"])
+
+    print("\nContradictions:")
+    print(result["contradictions"])
+
+    print("\nGenerated hypotheses:")
+
+    for hypothesis in result["hypotheses"]:
+        print("\n", hypothesis)
