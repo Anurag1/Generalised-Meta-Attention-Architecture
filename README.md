@@ -1,143 +1,80 @@
-# Generalised Meta-Attention Architecture
+# Meta-Attention Reasoning Toolkit (MART)
 
-## Overview
+Generalised Meta-Attention Architecture — reimagined as a usable SDK, model zoo, evaluation suite, and demo to make reasoning-first AI ideas practical for engineers, researchers, and product teams.
 
-Generalised Meta-Attention Architecture (GMAA) is a reasoning-centric neural framework that extends standard Transformer architectures by introducing self-observational and self-corrective mechanisms.
+Description
 
-Unlike conventional models that focus solely on prediction, GMAA models the *process of reasoning itself*—enabling systems to evaluate, refine, and adapt their internal decision-making over time.
+MART (Meta-Attention Reasoning Toolkit) packages the repository's reasoning-first concepts (meta-attention, epistemic confidence, rule induction, and self-critique) into an approachable Python SDK, example models, and demo applications so you can: experiment quickly, evaluate epistemic confidence and hallucination, and build safer interpretable systems.
 
----
+Key goals
 
-## Core Idea
+- Provide a compact, well-documented Python API to integrate meta-attention into transformer models.
+- Offer reference implementations and small configs for rapid experimentation and reproducible demos.
+- Ship a lightweight demo (Gradio/Streamlit) and Colab quickstart so anyone can try MART in <15 minutes.
+- Include evaluation tools for confidence calibration, hallucination detection, and reasoning benchmarks.
 
-Traditional architectures:
+Features (MVP)
 
+- Core SDK: MetaAttentionLayer, ConfidenceHead, SelfCritic module (lightweight, framework-friendly).
+- Hugging Face adapter: easy adapter-style integration into existing Transformers models.
+- Inference utilities: run models and get predictions + epistemic confidence and self-critique traces.
+- Small example configs & demo scripts for quick experiments.
+- Evaluation harness for basic hallucination and confidence tests.
+
+Quickstart (developer preview)
+
+Install (developer mode):
+
+pip install -e .
+
+Or (once released):
+
+pip install mart-reasoning-toolkit
+
+Minimal example (API preview)
+
+```python
+from mart import load_demo_model, run_inference
+
+# load a small demo configuration (random weights / toy checkpoint)
+model = load_demo_model("small-meta")
+
+prompt = "Explain why the sky appears blue."
+result = run_inference(model, prompt, return_confidence=True, return_self_critique=True)
+
+print("Answer:\n", result.answer)
+print("Confidence:\n", result.confidence)
+print("Self-critique notes:\n", result.self_critique)
 ```
-Input → Attention → Output
-```
 
-GMAA introduces a recursive reasoning loop:
+Planned repository layout
 
-```
-Input 
- → Attention 
-   → Meta-Attention 
-     → Confidence Estimation 
-       → Rule Induction 
-         → Feedback → (back to Attention)
-```
+- src/mart/                 — core package
+- examples/                 — quickstart scripts & Colab notebooks
+- demos/                    — Gradio/Streamlit demo app
+- configs/                  — small meta-attention configs
+- tests/                    — unit tests and CI
+- docs/                     — usage and API docs
+- LICENSE                   — recommended Apache-2.0
+- CONTRIBUTING.md
 
-This transforms the model from a passive predictor into an adaptive reasoning system.
+Roadmap & next steps
 
----
+1. Add Apache-2.0 LICENSE and CONTRIBUTING.md
+2. Create package skeleton (src/mart) with core class stubs and unit tests
+3. Implement HF adapter and inference utilities
+4. Add Colab quickstart and Gradio demo
+5. CI: tests, linters, build/publish pipeline
 
-## Key Components
+Ethics & model data
 
-### 1. Attention Layer
+- Document provenance and licensing for any pretrained checkpoints.
+- Provide a model card and risk statement explaining limitations, failure modes, and mitigation strategies.
 
-Processes input and identifies relevant features (standard Transformer mechanism).
+Maintainers
 
-### 2. Meta-Attention Layer
+- Owner: Anurag1 (GitHub)
 
-Observes and analyzes attention patterns:
+Get involved
 
-* Why certain inputs were prioritized
-* How reasoning paths are formed
-
-### 3. Epistemic Confidence
-
-Assigns a confidence score to outputs:
-
-* Distinguishes between certainty and uncertainty
-* Enables self-evaluation
-
-### 4. Rule Induction
-
-Extracts reusable reasoning patterns:
-
-* Converts repeated behaviors into generalized rules
-* Enables transfer across tasks
-
-### 5. Feedback Loop
-
-Feeds insights back into the system:
-
-* Adjusts attention dynamically
-* Enables continual improvement
-
----
-
-## Architectural Philosophy
-
-GMAA is built on the principle that:
-
-> Intelligence is not just prediction — it is the ability to observe, evaluate, and refine reasoning.
-
----
-
-## System Flow
-
-1. Input is processed via attention
-2. Meta-attention analyzes internal behavior
-3. Confidence module evaluates reliability
-4. Rule induction extracts patterns
-5. Feedback updates future processing
-
----
-
-## Why This Matters
-
-This architecture aims to address key limitations in current models:
-
-* Lack of reasoning transparency
-* Poor uncertainty handling
-* Weak generalization across tasks
-* Static behavior after training
-
-GMAA introduces:
-
-* Self-awareness of reasoning
-* Dynamic adaptation
-* Continuous learning loops
-
----
-
-## Potential Applications
-
-* Autonomous reasoning agents
-* Decision support systems
-* Scientific discovery systems
-* Financial or strategic modeling
-* Any system requiring explainable AI
-
----
-
-## Conceptual Positioning
-
-GMAA sits at the intersection of:
-
-* Transformer architectures
-* Meta-learning
-* Continual learning
-* Cognitive systems design
-
----
-
-## Future Directions
-
-* Integration with real-time learning systems
-* Scaling meta-attention across modalities
-* Formalizing rule extraction mechanisms
-* Benchmarking against standard Transformer models
-
----
-
-## Summary
-
-Generalised Meta-Attention Architecture is not just an improvement in model performance—it is a shift toward systems that **understand and refine their own reasoning processes**.
-
----
-
-
-
----
+If you'd like, I can now create the package skeleton (src/mart) with core stubs, tests, and a CI workflow. Reply with "B" and I'll add the code and tests directly to the repository.
